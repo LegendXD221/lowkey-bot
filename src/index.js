@@ -29,7 +29,19 @@ async function main() {
   process.on('SIGINT', () => shutdown('SIGINT'));
   process.on('SIGTERM', () => shutdown('SIGTERM'));
   process.on('unhandledRejection', (err) => log.error({ err }, 'Unhandled rejection'));
-  await client.login(env.DISCORD_TOKEN);
+  log.info('Connecting to Discord gateway');
+  let loginTimer;
+  try {
+    await Promise.race([
+      client.login(env.DISCORD_TOKEN),
+      new Promise((_, reject) => {
+        loginTimer = setTimeout(() => reject(new Error('Discord gateway login timed out after 45 seconds')), 45_000);
+      })
+    ]);
+    log.info('Discord gateway login accepted; waiting for ready event');
+  } finally {
+    if (loginTimer) clearTimeout(loginTimer);
+  }
   } catch (err) {
     health.stop();
     throw err;

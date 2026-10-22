@@ -9,6 +9,9 @@ function createClient() {
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent],
     partials: [Partials.Channel]
   });
+  client.on('error', (err) => log.error({ err }, 'Discord client error'));
+  client.on('shardError', (err) => log.error({ err }, 'Discord gateway shard error'));
+  client.on('warn', (message) => log.warn({ message }, 'Discord warning'));
   client.commands = new Collection();
   for (const sub of ['user', 'owner']) {
     const dir = path.join(__dirname, 'commands', sub);
