@@ -22,6 +22,11 @@ describe('requestEngine helpers', () => {
     const p = { ...baseProvider, http_method: 'POST', request_body_template: '{"link":"{{url}}"}' };
     expect(buildBody(p, 'https://t.com').link).toBe('https://t.com');
   });
+  test('buildUrl adds query API keys to POST endpoints', () => {
+    process.env.TEST_PROVIDER_KEY = 'secret-value';
+    const p = { ...baseProvider, http_method: 'POST', authentication_type: 'api_key_query', secret_env_key: 'TEST_PROVIDER_KEY' };
+    expect(buildUrl(p, 'https://target.com')).toContain('api_key=secret-value');
+  });
   test('extractResult path', () => {
     expect(extractResult(baseProvider, { data: { url: 'https://out.com' } }, 200)).toBe('https://out.com');
   });

@@ -16,10 +16,10 @@ module.exports = {
       { name: 'Enabled', value: String(p.enabled), inline: true },
       { name: 'Priority', value: String(p.priority), inline: true },
       { name: 'Endpoint', value: `\`${truncate(p.endpoint, 1000)}\``, inline: false },
-      { name: 'URL Param', value: p.url_parameter || '—', inline: true },
+      { name: 'URL Param', value: truncate(p.url_parameter || '—', 1000), inline: true },
       { name: 'Auth Type', value: p.authentication_type, inline: true },
-      { name: 'Secret Env', value: p.secret_env_key ? `\`${p.secret_env_key}\`` : '—', inline: true },
-      { name: 'Response', value: `${p.response_format}${p.response_path ? ' → ' + p.response_path : ''}`, inline: true },
+      { name: 'Secret Env', value: truncate(p.secret_env_key ? `\`${p.secret_env_key}\`` : '—', 1000), inline: true },
+      { name: 'Response', value: truncate(`${p.response_format}${p.response_path ? ' → ' + p.response_path : ''}`, 1000), inline: true },
       { name: 'Encoding', value: p.encoding_type, inline: true },
       { name: 'Timeout', value: `${p.timeout_ms}ms`, inline: true }
     )] });

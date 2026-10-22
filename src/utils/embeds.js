@@ -118,8 +118,8 @@ function extractResultUrlFromMessage(message) {
   if (urlField?.value) return urlField.value.replace(/…$/, '').trim();
   const resultField = fields.find(f => f.name === 'Result');
   if (resultField?.value) {
-    const m = resultField.value.match(/\((https?:\/\/[^)\s]+)\)/i);
-    if (m) return m[1];
+    const m = resultField.value.match(/\(<(https?:\/\/[^)>\s]+)>\)|\((https?:\/\/[^)\s]+)\)/i);
+    if (m) return m[1] || m[2];
   }
   return null;
 }

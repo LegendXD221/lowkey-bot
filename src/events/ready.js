@@ -33,13 +33,21 @@ module.exports = {
     // Register slash commands on every boot so they appear without a separate deploy step
     try {
       const guildIds = [...client.guilds.cache.keys()];
-      await deployCommands({ guildIds });
-      log.info({ guilds: guildIds.length }, 'Slash commands registered');
+      const result = await deployCommands({ guildIds });
+      if (result.failedGuildIds?.length) log.warn({ failedGuildIds: result.failedGuildIds }, 'Slash commands partially registered');
+      else log.info({ guilds: guildIds.length }, 'Slash commands registered');
     } catch (err) {
       log.error({ err: err?.message || err }, 'Command registration failed — check CLIENT_ID and token');
     }
 
-    await loadEmojisFromDb();
-    startHealthMonitor();
+    try {
+      await loadEmojisFromDb();
+      startHealthMonitor();
+      client.healthServer?.setReady(true);
+      log.info('Discord gateway connection established and Lowkey is ready');
+    } catch (err) {
+      client.healthServer?.setReady(false);
+      log.error({ err }, 'Lowkey startup initialization failed');
+    }
   }
 };

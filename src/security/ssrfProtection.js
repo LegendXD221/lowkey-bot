@@ -29,7 +29,14 @@ function isPrivateIp(ip) {
 }
 async function resolveAndCheck(hostname) {
   if (isPrivateHost(hostname)) throw new Error('Blocked: private or metadata host');
-  const addresses = await dns.lookup(hostname, { all: true, verbatim: true });
+  let addresses;
+  try {
+    addresses = await dns.lookup(hostname, { all: true, verbatim: true });
+  } catch (err) {
+    const wrapped = new Error(`DNS lookup failed for ${hostname}`);
+    wrapped.code = err.code;
+    throw wrapped;
+  }
   for (const a of addresses) {
     if (isPrivateIp(a.address)) throw new Error(`Blocked: resolved to private address ${a.address}`);
   }

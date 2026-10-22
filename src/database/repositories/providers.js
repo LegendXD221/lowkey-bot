@@ -1,5 +1,5 @@
 'use strict';
-const { query } = require('../pool');
+const { query, withTransaction } = require('../pool');
 const { safeJsonParse } = require('../../utils/formatters');
 function mapProvider(row) {
   if (!row) return null;
@@ -32,7 +32,8 @@ async function getProviderByName(name) {
   return res.rows[0] ? mapProvider(res.rows[0]) : null;
 }
 async function createProvider(data) {
-  const res = await query(
+  return withTransaction(async (client) => {
+  const res = await client.query(
     `INSERT INTO api_providers (name, endpoint, http_method, url_parameter, request_body_template,
       custom_headers, authentication_type, secret_env_key, response_format, response_path,
       encoding_type, enabled, priority, timeout_ms)
@@ -44,8 +45,9 @@ async function createProvider(data) {
      data.priority ?? 100, data.timeout_ms ?? 10000]
   );
   const provider = mapProvider(res.rows[0]);
-  await query(`INSERT INTO api_metrics (provider_id) VALUES ($1) ON CONFLICT DO NOTHING`, [provider.id]);
+  await client.query(`INSERT INTO api_metrics (provider_id) VALUES ($1) ON CONFLICT DO NOTHING`, [provider.id]);
   return provider;
+  });
 }
 async function updateProvider(id, fields) {
   const allowed = ['name','endpoint','http_method','url_parameter','request_body_template','custom_headers',
@@ -71,4 +73,3 @@ async function setPatterns(id, patterns) {
   return updateProvider(id, { url_patterns: arr });
 }
 module.exports = { listProviders, getProviderById, getProviderByName, createProvider, updateProvider, deleteProvider, setEnabled, setPriority, setPatterns, mapProvider };
-

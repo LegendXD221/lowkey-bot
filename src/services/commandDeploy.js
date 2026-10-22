@@ -40,6 +40,7 @@ async function deployCommands({ guildIds = [] } = {}) {
   const rest = new REST({ version: '10' }).setToken(env.DISCORD_TOKEN);
   const targets = [...guildIds];
   if (env.GUILD_ID && !targets.includes(env.GUILD_ID)) targets.push(env.GUILD_ID);
+  const failedGuildIds = [];
 
   for (const gid of targets.filter(Boolean)) {
     try {
@@ -49,6 +50,7 @@ async function deployCommands({ guildIds = [] } = {}) {
       );
       log.info({ guildId: gid, count: data.length }, 'Guild commands deployed');
     } catch (err) {
+      failedGuildIds.push(gid);
       log.error({ err: err?.rawError || err.message, guildId: gid }, 'Guild command deploy failed');
     }
   }
@@ -59,7 +61,7 @@ async function deployCommands({ guildIds = [] } = {}) {
       { body: commands }
     );
     log.info({ count: data.length }, 'Global commands deployed');
-    return { count: data.length };
+    return { count: data.length, failedGuildIds };
   } catch (err) {
     log.error({ err: err?.rawError || err.message }, 'Global command deploy failed');
     throw err;

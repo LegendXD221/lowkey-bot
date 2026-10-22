@@ -33,11 +33,11 @@ async function recordFailure(providerId, latencyMs = null) {
      ON CONFLICT (provider_id) DO UPDATE SET
        total_requests = api_metrics.total_requests + 1,
        failed_requests = api_metrics.failed_requests + 1,
-       consecutive_failures = api_metrics.consecutive_failures + 1,
+       consecutive_failures = CASE WHEN api_metrics.circuit_state = 'half_open' THEN $3 ELSE api_metrics.consecutive_failures + 1 END,
        last_latency_ms = COALESCE($2, api_metrics.last_latency_ms),
        last_failure_at = NOW(),
-       circuit_state = CASE WHEN api_metrics.consecutive_failures + 1 >= $3 THEN 'open' ELSE api_metrics.circuit_state END,
-       circuit_opened_at = CASE WHEN api_metrics.consecutive_failures + 1 >= $3 AND api_metrics.circuit_state <> 'open' THEN NOW() ELSE api_metrics.circuit_opened_at END,
+       circuit_state = CASE WHEN api_metrics.circuit_state = 'half_open' OR api_metrics.consecutive_failures + 1 >= $3 THEN 'open' ELSE api_metrics.circuit_state END,
+       circuit_opened_at = CASE WHEN api_metrics.circuit_state = 'half_open' OR api_metrics.consecutive_failures + 1 >= $3 THEN NOW() ELSE api_metrics.circuit_opened_at END,
        half_open_successes = 0, updated_at = NOW()`,
     [providerId, latencyMs, env.CIRCUIT_FAILURE_THRESHOLD]);
 }

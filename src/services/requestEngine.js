@@ -26,20 +26,21 @@ function buildAuthHeaders(provider) {
 }
 function buildUrl(provider, targetUrl) {
   const endpoint = provider.endpoint;
+  const endpointUrl = new URL(endpoint);
+  if (provider.authentication_type === 'api_key_query') {
+    const secret = getSecret(provider.secret_env_key);
+    if (secret) endpointUrl.searchParams.set('api_key', secret);
+  }
   const encoded = applyEncoding(targetUrl, provider.encoding_type);
   const param = provider.url_parameter || 'url';
   if (provider.http_method === 'GET') {
-    const u = new URL(endpoint);
+    const u = endpointUrl;
     // URLSearchParams performs transport escaping. Passing an already
     // percent-encoded value would turn `%2F` into `%252F`.
     u.searchParams.set(param, provider.encoding_type === 'url' ? targetUrl : encoded);
-    if (provider.authentication_type === 'api_key_query') {
-      const secret = getSecret(provider.secret_env_key);
-      if (secret) u.searchParams.set('api_key', secret);
-    }
     return u.toString();
   }
-  return endpoint;
+  return endpointUrl.toString();
 }
 function buildBody(provider, targetUrl) {
   if (provider.http_method !== 'POST') return undefined;
@@ -88,6 +89,15 @@ async function requestWithSafeRedirects(config, maxRedirects) {
     }
     const nextUrl = new URL(location, currentUrl).toString();
     await assertSafeUrl(nextUrl);
+    const currentOrigin = new URL(currentUrl).origin;
+    const nextOrigin = new URL(nextUrl).origin;
+    if (currentOrigin !== nextOrigin) {
+      const safeHeaders = {};
+      for (const [key, value] of Object.entries(currentConfig.headers || {})) {
+        if (!['authorization', 'cookie', 'proxy-authorization', 'x-api-key'].includes(key.toLowerCase())) safeHeaders[key] = value;
+      }
+      currentConfig = { ...currentConfig, headers: safeHeaders };
+    }
     currentUrl = nextUrl;
     // Match common Axios/HTTP redirect semantics for POST requests.
     if (response.status === 303 || ((response.status === 301 || response.status === 302) && currentConfig.method === 'POST')) {
@@ -97,10 +107,7 @@ async function requestWithSafeRedirects(config, maxRedirects) {
 }
 async function executeRequest(provider, targetUrl) {
   const env = loadEnv();
-  await assertSafeUrl(provider.endpoint);
-  await assertSafeUrl(targetUrl);
   const url = buildUrl(provider, targetUrl);
-  await assertSafeUrl(url);
   const headers = buildAuthHeaders(provider);
   const body = buildBody(provider, targetUrl);
   const timeout = provider.timeout_ms || env.DEFAULT_TIMEOUT_MS;
@@ -115,6 +122,9 @@ async function executeRequest(provider, targetUrl) {
   let lastErr;
   for (let attempt = 0; attempt <= env.MAX_RETRIES; attempt++) {
     try {
+      await assertSafeUrl(provider.endpoint);
+      await assertSafeUrl(targetUrl);
+      await assertSafeUrl(url);
       response = await requestWithSafeRedirects(config, env.MAX_REDIRECTS);
       lastErr = null;
       break;
@@ -126,7 +136,7 @@ async function executeRequest(provider, targetUrl) {
       }
       const isTimeout = err.code === 'ECONNABORTED' || err.message?.includes('timeout');
       const isNetwork = ['ECONNRESET', 'ENOTFOUND', 'EAI_AGAIN', 'ECONNREFUSED', 'ETIMEDOUT'].includes(err.code);
-      if (attempt < env.MAX_RETRIES && isNetwork && !isTimeout) {
+      if (attempt < env.MAX_RETRIES && (isNetwork || isTimeout)) {
         await new Promise(r => setTimeout(r, (250 * (2 ** attempt)) + Math.random() * 250));
         continue;
       }

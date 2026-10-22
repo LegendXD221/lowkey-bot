@@ -13,7 +13,6 @@ const {
   BypassUnavailableError,
   MaintenanceError
 } = require('../utils/errors');
-const { loadEnv } = require('../config/env');
 const { getLogger } = require('../utils/logger');
 
 const log = getLogger();
@@ -55,30 +54,14 @@ async function bypass(rawUrl, { skipCache = false } = {}) {
     }
   }
 
-  const env = loadEnv();
-  let attempts = 0;
-  const maxAttempts = Math.min(providers.length, env.MAX_RETRIES + 1);
   const errors = [];
 
   for (const provider of providers) {
-    if (attempts >= maxAttempts) break;
-    attempts++;
+    let outcome;
     try {
-      const outcome = await withLimit(provider.id, 3, () => executeRequest(provider, url));
-      await circuitBreaker.onSuccess(provider.id, outcome.latency);
-      await cacheRepo.setCached(url, provider.id, { result: outcome.result });
-      return {
-        originalUrl: url,
-        resultUrl: outcome.result,
-        providerName: outcome.providerName,
-        providerId: outcome.providerId,
-        latencyMs: outcome.latency,
-        httpStatus: outcome.httpStatus,
-        fromCache: false,
-        service
-      };
+      outcome = await withLimit(provider.id, 3, () => executeRequest(provider, url));
     } catch (err) {
-      await circuitBreaker.onFailure(provider.id, err.latency ?? null);
+      try { await circuitBreaker.onFailure(provider.id, err.latency ?? null); } catch (metricsErr) { log.error({ err: metricsErr, provider: provider.name }, 'Provider failure metric failed'); }
       errors.push({
         provider: provider.name,
         category: err.category || err.code || 'UNKNOWN',
@@ -90,7 +73,23 @@ async function bypass(rawUrl, { skipCache = false } = {}) {
         message: err.message,
         service
       }, 'Provider failed, trying next');
+      continue;
     }
+
+    try { await circuitBreaker.onSuccess(provider.id, outcome.latency); }
+    catch (err) { log.error({ err, provider: provider.name }, 'Provider success metric failed'); }
+    try { await cacheRepo.setCached(url, provider.id, { result: outcome.result }); }
+    catch (err) { log.warn({ err, provider: provider.name }, 'Result cache write failed'); }
+    return {
+      originalUrl: url,
+      resultUrl: outcome.result,
+      providerName: outcome.providerName,
+      providerId: outcome.providerId,
+      latencyMs: outcome.latency,
+      httpStatus: outcome.httpStatus,
+      fromCache: false,
+      service
+    };
   }
 
   if (!errors.length) throw new UnsupportedUrlError();
