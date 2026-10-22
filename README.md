@@ -49,11 +49,11 @@ docker run --env-file .env lowkey
 This repository includes `render.yaml` for a free Render Web Service. The bot exposes:
 
 - `GET /health` — liveness endpoint for UptimeRobot; returns HTTP 200 while the process is alive.
-- `GET /ready` — readiness endpoint for Render; returns HTTP 200 after startup initialization and HTTP 503 while starting.
+- `GET /ready` — readiness diagnostic; returns HTTP 200 after startup initialization and HTTP 503 while starting.
 
 To deploy, create a new Render Blueprint from this repository and enter the secret values for `DISCORD_TOKEN`, `CLIENT_ID`, `DATABASE_URL`, and `BOT_OWNER_IDS` when Render prompts you. Render supplies `PORT` automatically; do not hard-code it. The included configuration runs `npm ci --omit=dev`, starts the bot with `npm start`, and uses the free plan. Slash commands synchronize automatically from the Discord `ready` event on every startup; no separate Render pre-deploy command is needed.
 
-For UptimeRobot, create an HTTP(s) monitor using the public Render URL followed by `/health`, for example `https://lowkey-bot.onrender.com/health`. Use a 5-minute interval on the free UptimeRobot plan. Do not monitor `/ready` unless you want startup failures to alert as downtime.
+For UptimeRobot, create an HTTP(s) monitor using the public Render URL followed by `/health`, for example `https://lowkey-bot.onrender.com/health`. Use a 5-minute interval on the free UptimeRobot plan. Use `/ready` when diagnosing whether Discord and startup initialization completed.
 
 ## Owner workflow
 

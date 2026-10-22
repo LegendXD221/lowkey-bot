@@ -6,7 +6,7 @@ services:
     region: singapore
     buildCommand: npm ci --omit=dev
     startCommand: npm start
-    healthCheckPath: /ready
+    healthCheckPath: /health
     autoDeploy: true
     envVars:
       - key: DISCORD_TOKEN
