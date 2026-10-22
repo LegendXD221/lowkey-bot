@@ -1,4 +1,5 @@
 'use strict';
+const { Events } = require('discord.js');
 const { loadEnv } = require('./config/env');
 const { getLogger } = require('./utils/logger');
 const { createClient } = require('./client');
@@ -14,7 +15,10 @@ async function main() {
   try {
     await migrate();
     const client = createClient();
-    client.once('ready', () => health.setReady(true));
+    client.once(Events.ClientReady, () => {
+      health.setReady(true);
+      log.info('Discord gateway connection established');
+    });
   let shuttingDown = false;
   const shutdown = async (signal) => {
     if (shuttingDown) return;
