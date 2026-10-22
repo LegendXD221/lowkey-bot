@@ -1,0 +1,39 @@
+{
+  "name": "lowkey",
+  "version": "1.1.0",
+  "description": "Premium Discord bypass bot with intelligent API routing, Neon PostgreSQL, and automatic failover",
+  "main": "src/index.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "deploy-commands": "node src/deploy-commands.js",
+    "migrate": "node src/database/migrate.js",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --forceExit",
+    "test:unit": "node --experimental-vm-modules node_modules/jest/bin/jest.js --runInBand --forceExit --testPathPattern=tests/unit"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.3",
+    "pg": "^8.13.1",
+    "dotenv": "^16.4.5",
+    "axios": "^1.7.7",
+    "pino": "^9.5.0",
+    "pino-pretty": "^11.3.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "nock": "^13.5.5"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testMatch": [
+      "**/tests/**/*.test.js"
+    ]
+  },
+  "license": "MIT",
+  "private": true
+}
