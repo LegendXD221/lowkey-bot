@@ -42,6 +42,13 @@ function infoEmbed(title, description) {
   return baseEmbed().setColor(THEME.accent).setTitle(embedTitle(e('info'), title)).setDescription(embedDescription(description));
 }
 
+function bypassLoadingEmbed({ service } = {}) {
+  const serviceText = service ? ` for **${truncate(service, 80)}**` : '';
+  return baseEmbed().setColor(THEME.accent)
+    .setTitle(`${e('info')} ⏳ Bypassing link`)
+    .setDescription(`Please wait while I unlock your link${serviceText}…\n\n🔄 **Working on it**`);
+}
+
 function isHttpResult(url) {
   return typeof url === 'string' && /^https?:\/\//i.test(url.trim());
 }
@@ -183,6 +190,7 @@ function ownerHelpEmbed() {
 module.exports = {
   THEME, EMOJI, setCustomEmojis, e, baseEmbed,
   successEmbed, errorEmbed, warningEmbed, infoEmbed,
+  bypassLoadingEmbed,
   bypassSuccessEmbed, buildBypassComponents, buildBypassPayload,
   extractResultUrlFromMessage, isHttpResult,
   maintenanceEmbed, statusEmbed, helpEmbed, ownerHelpEmbed
