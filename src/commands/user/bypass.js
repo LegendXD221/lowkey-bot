@@ -7,6 +7,7 @@ const { buildBypassPayload, bypassLoadingEmbed, errorEmbed, maintenanceEmbed } =
 const { InvalidUrlError, UnsupportedUrlError, BypassUnavailableError, MaintenanceError, RateLimitError } = require('../../utils/errors');
 const { getLogger } = require('../../utils/logger');
 const log = getLogger();
+const MIN_LOADING_DISPLAY_MS = 900;
 module.exports = {
   data: new SlashCommandBuilder().setName('bypass').setDescription('Unlock a supported link')
     .addStringOption(o => o.setName('url').setDescription('The URL to unlock').setRequired(true)),
@@ -20,6 +21,7 @@ module.exports = {
         components: [],
         allowedMentions: { users: [interaction.user.id] }
       });
+      const loadingStartedAt = Date.now();
       await rateLimiter.checkUser(interaction.user.id);
       if (interaction.guildId) await rateLimiter.checkGuild(interaction.guildId);
       const result = await bypass(interaction.options.getString('url', true));
@@ -30,6 +32,10 @@ module.exports = {
         service: result.service,
         fromCache: result.fromCache
       });
+      const remainingLoadingMs = MIN_LOADING_DISPLAY_MS - (Date.now() - loadingStartedAt);
+      if (remainingLoadingMs > 0) {
+        await new Promise(resolve => setTimeout(resolve, remainingLoadingMs));
+      }
       const msg = await interaction.editReply({ ...payload, content: '' });
       if (msg?.id && result.resultUrl) resultStore.set(msg.id, result.resultUrl);
     } catch (err) {
