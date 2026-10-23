@@ -61,10 +61,14 @@ function bypassSuccessEmbed({ originalUrl, resultUrl, provider, latencyMs, servi
     emb.addFields({ name: 'Time', value: fromCache ? `${formatLatency(latencyMs)} · cache` : formatLatency(latencyMs), inline: true });
   }
   if (resultUrl) {
-    // Display as markdown link only — raw URL lives in resultStore for copy buttons
-    const resultValue = String(resultUrl).length <= 850
-      ? `[Open unlocked link](<${resultUrl}>)`
-      : 'Result available — use the copy buttons below.';
+    const resultText = String(resultUrl).trim();
+    const resultValue = isHttpResult(resultText)
+      ? resultText.length <= 850
+        ? `[Open unlocked link](<${resultText}>)`
+        : 'Result URL is long — use the copy buttons below.'
+      : resultText.length <= 850
+        ? `\`\`\`text\n${resultText}\n\`\`\``
+        : 'Text result is long — use the copy buttons below.';
     emb.addFields({ name: 'Result', value: resultValue, inline: false });
   } else {
     emb.addFields({ name: 'Result', value: '—', inline: false });
