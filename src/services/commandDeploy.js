@@ -8,6 +8,14 @@ const { getLogger } = require('../utils/logger');
 
 const log = getLogger();
 
+function withTimeout(promise, label, ms = 15000) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms); })
+  ]).finally(() => clearTimeout(timer));
+}
+
 function loadCommandJson() {
   const commands = [];
   for (const sub of ['user', 'owner']) {
@@ -42,23 +50,29 @@ async function deployCommands({ guildIds = [] } = {}) {
   if (env.GUILD_ID && !targets.includes(env.GUILD_ID)) targets.push(env.GUILD_ID);
   const failedGuildIds = [];
 
-  for (const gid of targets.filter(Boolean)) {
-    try {
-      const data = await rest.put(
-        Routes.applicationGuildCommands(env.CLIENT_ID, gid),
-        { body: commands }
-      );
-      log.info({ guildId: gid, count: data.length }, 'Guild commands deployed');
-    } catch (err) {
-      failedGuildIds.push(gid);
-      log.error({ err: err?.rawError || err.message, guildId: gid }, 'Guild command deploy failed');
+  const guildTargets = [...new Set(targets.filter(Boolean))];
+  log.info({ guildIds: guildTargets, count: commands.length }, 'Deploying guild commands');
+  const guildResults = await Promise.allSettled(guildTargets.map(async (gid) => {
+    const data = await withTimeout(
+      rest.put(Routes.applicationGuildCommands(env.CLIENT_ID, gid), { body: commands }),
+      `Guild command deploy ${gid}`
+    );
+    log.info({ guildId: gid, count: data.length }, 'Guild commands deployed');
+    return gid;
+  }));
+  for (let i = 0; i < guildResults.length; i++) {
+    if (guildResults[i].status === 'rejected') {
+      const err = guildResults[i].reason;
+      failedGuildIds.push(guildTargets[i]);
+      log.error({ err: err?.rawError || err.message, guildId: guildTargets[i] }, 'Guild command deploy failed');
     }
   }
 
   try {
-    const data = await rest.put(
-      Routes.applicationCommands(env.CLIENT_ID),
-      { body: commands }
+    log.info({ count: commands.length }, 'Deploying global commands');
+    const data = await withTimeout(
+      rest.put(Routes.applicationCommands(env.CLIENT_ID), { body: commands }),
+      'Global command deploy'
     );
     log.info({ count: data.length }, 'Global commands deployed');
     return { count: data.length, failedGuildIds };
