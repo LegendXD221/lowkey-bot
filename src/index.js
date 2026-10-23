@@ -1,4 +1,5 @@
 'use strict';
+const dns = require('node:dns');
 const { loadEnv } = require('./config/env');
 const { getLogger } = require('./utils/logger');
 const { createClient } = require('./client');
@@ -6,6 +7,11 @@ const { migrate } = require('./database/migrate');
 const { closePool } = require('./database/pool');
 const { stopHealthMonitor } = require('./services/healthMonitor');
 const { startHealthServer } = require('./healthServer');
+
+// Some cloud runtimes advertise IPv6 DNS answers without a usable IPv6 route.
+// Discord Gateway then appears to hang before the WebSocket handshake completes.
+// Prefer IPv4 while retaining normal DNS fallback behavior.
+if (typeof dns.setDefaultResultOrder === 'function') dns.setDefaultResultOrder('ipv4first');
 
 async function main() {
   const env = loadEnv();
