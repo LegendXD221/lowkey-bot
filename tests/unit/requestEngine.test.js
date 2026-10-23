@@ -7,7 +7,7 @@ process.env.NODE_ENV = 'test';
 process.env.MAX_RETRIES = '0';
 process.env.MAX_REDIRECTS = '2';
 const nock = require('nock');
-const { buildUrl, buildBody, extractResult, applyEncoding, executeRequest } = require('../../src/services/requestEngine');
+const { buildUrl, buildBody, extractResult, applyEncoding, executeRequest, unwrapResultLink } = require('../../src/services/requestEngine');
 afterEach(() => nock.cleanAll());
 describe('requestEngine helpers', () => {
   const baseProvider = {
@@ -29,6 +29,10 @@ describe('requestEngine helpers', () => {
   });
   test('extractResult path', () => {
     expect(extractResult(baseProvider, { data: { url: 'https://out.com' } }, 200)).toBe('https://out.com');
+  });
+  test('unwraps Markdown-wrapped result links', () => {
+    expect(unwrapResultLink('[Open unlocked link](<https://out.com/result>)')).toBe('https://out.com/result');
+    expect(extractResult(baseProvider, { data: { url: '[Open unlocked link](<https://out.com/result>)' } }, 200)).toBe('https://out.com/result');
   });
   test('extractResult rejects error payload', () => {
     expect(() => extractResult(baseProvider, { error: 'fail', success: false }, 200)).toThrow();

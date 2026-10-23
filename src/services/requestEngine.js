@@ -7,6 +7,12 @@ const { ProviderError } = require('../utils/errors');
 const { getLogger } = require('../utils/logger');
 const log = getLogger();
 
+function unwrapResultLink(value) {
+  const text = String(value ?? '').trim();
+  const markdown = text.match(/^\[[^\]]{1,200}\]\(\s*<?(https?:\/\/[^)>\s]+)>?\s*\)$/i);
+  return (markdown ? markdown[1] : text).trim();
+}
+
 function applyEncoding(value, encodingType) {
   if (value == null) return value;
   const s = String(value);
@@ -56,7 +62,7 @@ function buildBody(provider, targetUrl) {
 function extractResult(provider, data, status) {
   if (status < 200 || status >= 300) throw new ProviderError(`Upstream HTTP ${status}`, 'HTTP_ERROR', status);
   if (provider.response_format === 'url') {
-    const text = typeof data === 'string' ? data.trim() : String(data);
+    const text = unwrapResultLink(typeof data === 'string' ? data : String(data));
     try {
       const parsed = new URL(text);
       if (['http:', 'https:'].includes(parsed.protocol) && !parsed.username && !parsed.password) return text;
@@ -72,7 +78,7 @@ function extractResult(provider, data, status) {
   let result = provider.response_path ? deepGet(body, provider.response_path) : (body.url || body.result || body.link || body.data?.url || body.data);
   if (!result) throw new ProviderError('Could not extract result from response path', 'INVALID_RESPONSE');
   if (typeof result === 'object') result = result.url || result.link || result.result || JSON.stringify(result);
-  const out = String(result).trim();
+  const out = unwrapResultLink(result);
   if (!out) throw new ProviderError('Empty extracted result', 'INVALID_RESPONSE');
   return out;
 }
@@ -158,4 +164,4 @@ async function executeRequest(provider, targetUrl) {
     err.latency = latency; err.httpStatus = response.status; throw err;
   }
 }
-module.exports = { executeRequest, applyEncoding, buildUrl, buildBody, extractResult, buildAuthHeaders };
+module.exports = { executeRequest, applyEncoding, buildUrl, buildBody, extractResult, buildAuthHeaders, unwrapResultLink };
