@@ -94,7 +94,7 @@ async function requestWithSafeRedirects(config, maxRedirects) {
     if (currentOrigin !== nextOrigin) {
       const safeHeaders = {};
       for (const [key, value] of Object.entries(currentConfig.headers || {})) {
-        if (!['authorization', 'cookie', 'proxy-authorization', 'x-api-key'].includes(key.toLowerCase())) safeHeaders[key] = value;
+        if (['user-agent', 'accept', 'content-type'].includes(key.toLowerCase())) safeHeaders[key] = value;
       }
       currentConfig = { ...currentConfig, headers: safeHeaders };
     }

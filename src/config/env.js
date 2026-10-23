@@ -33,6 +33,7 @@ const envSchema = z.object({
 });
 
 let cached = null;
+const PROVIDER_SECRET_KEYS = new Set(['BYPASS_API_KEY', 'LINK_UNLOCK_API_KEY', 'CUSTOM_API_KEY']);
 function loadEnv() {
   if (cached) return cached;
   const parsed = envSchema.safeParse(process.env);
@@ -49,6 +50,9 @@ function loadEnv() {
 }
 function getSecret(envKey) {
   if (!envKey || typeof envKey !== 'string') return null;
-  return process.env[envKey.trim()] || null;
+  const key = envKey.trim();
+  const testOnly = process.env.NODE_ENV === 'test' && /^TEST_[A-Z0-9_]+$/.test(key);
+  if (!PROVIDER_SECRET_KEYS.has(key) && !testOnly) return null;
+  return process.env[key] || null;
 }
-module.exports = { loadEnv, getSecret };
+module.exports = { loadEnv, getSecret, PROVIDER_SECRET_KEYS };

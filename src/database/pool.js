@@ -9,7 +9,7 @@ function getPool() {
   const env = loadEnv();
   pool = new Pool({
     connectionString: env.DATABASE_URL,
-    ssl: env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false,
+    ssl: env.NODE_ENV === 'production' ? { rejectUnauthorized: true } : false,
     max: 10, idleTimeoutMillis: 30000, connectionTimeoutMillis: 10000
   });
   pool.on('error', (err) => log.error({ err }, 'Unexpected PostgreSQL pool error'));

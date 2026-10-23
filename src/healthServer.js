@@ -34,9 +34,13 @@ function startHealthServer() {
   server.on('error', (err) => {
     console.error('Health server failed:', err.message);
     process.exitCode = 1;
+    setImmediate(() => process.exit(1));
   });
 
   const port = Number.parseInt(process.env.PORT || '3000', 10);
+  if (!Number.isInteger(port) || port < 0 || port > 65535) {
+    throw new Error(`Invalid PORT: ${process.env.PORT}`);
+  }
   server.listen(port, '0.0.0.0');
   return {
     server,

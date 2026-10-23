@@ -41,19 +41,21 @@ npm start
 
 ```bash
 docker build -t lowkey .
-docker run --env-file .env lowkey
+docker run --env-file .env -p 3000:3000 lowkey
 ```
 
-## Render free tier + UptimeRobot
+## Hosting panel deployment
 
-This repository includes `render.yaml` for a free Render Web Service. The bot exposes:
+The bot can run on Pterodactyl, a VPS, Docker, or another always-on Node.js hosting panel. Install dependencies and start it with:
 
-- `GET /health` — liveness endpoint for UptimeRobot; returns HTTP 200 while the process is alive.
-- `GET /ready` — readiness diagnostic; returns HTTP 200 after startup initialization and HTTP 503 while starting.
+```bash
+npm ci --omit=dev
+npm start
+```
 
-To deploy, create a new Render Blueprint from this repository and enter the secret values for `DISCORD_TOKEN`, `CLIENT_ID`, `DATABASE_URL`, and `BOT_OWNER_IDS` when Render prompts you. Render supplies `PORT` automatically; do not hard-code it. The included configuration runs `npm ci --omit=dev`, starts the bot with `npm start`, and uses the free plan. Slash commands synchronize automatically from the Discord `ready` event on every startup; no separate Render pre-deploy command is needed.
+Configure the environment variables from `.env.example`. The bot exposes `GET /health` as a liveness endpoint and `GET /ready` as a startup-readiness diagnostic. Set `PORT` to the port assigned by your hosting panel, then point UptimeRobot at `https://your-domain.example/health` if the health server is publicly reachable.
 
-For UptimeRobot, create an HTTP(s) monitor using the public Render URL followed by `/health`, for example `https://lowkey-bot.onrender.com/health`. Use a 5-minute interval on the free UptimeRobot plan. Use `/ready` when diagnosing whether Discord and startup initialization completed.
+Slash commands synchronize automatically from the Discord `ready` event after startup. Keep the bot process running continuously and allow outbound HTTPS/WebSocket connections to Discord on port 443.
 
 ## Owner workflow
 

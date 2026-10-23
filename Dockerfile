@@ -4,4 +4,4 @@ COPY package*.json ./
 RUN npm ci --omit=dev
 COPY . .
 ENV NODE_ENV=production
-CMD ["sh", "-c", "node src/database/migrate.js && node src/index.js"]
+CMD ["sh", "-c", "node src/database/migrate.js && exec node src/index.js"]

@@ -59,6 +59,9 @@ module.exports = {
           await interaction.reply({ content: 'Something went wrong.', ephemeral: true }).catch(() => {});
         }
       }
+      if (!interaction.replied && !interaction.deferred) {
+        await interaction.reply({ content: 'This button has expired. Run `/bypass` again.', ephemeral: true }).catch(() => {});
+      }
       return;
     }
 
@@ -67,6 +70,7 @@ module.exports = {
     const command = interaction.client.commands.get(interaction.commandName);
     if (!command) {
       log.warn({ command: interaction.commandName, guildId: interaction.guildId }, 'Unknown command interaction');
+      await interaction.reply({ content: 'This command is no longer available. Please reopen the command list.', ephemeral: true }).catch(() => {});
       return;
     }
 

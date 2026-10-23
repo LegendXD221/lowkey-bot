@@ -11,15 +11,22 @@ const { InvalidUrlError, UnsupportedUrlError, BypassUnavailableError, Maintenanc
 const { getLogger } = require('../utils/logger');
 const log = getLogger();
 const recent = new Map();
+function withTimeout(promise, ms) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => { timer = setTimeout(() => reject(new Error('Autobypass settings lookup timed out')), ms); })
+  ]).finally(() => clearTimeout(timer));
+}
 module.exports = {
   name: Events.MessageCreate,
   async execute(message) {
     if (message.author.bot || message.webhookId) return;
     if (!message.guild || !message.channel) return;
     try {
-      const settings = await settingsRepo.getSettings();
+      const settings = await withTimeout(settingsRepo.getSettings(), 3000);
       if (settings.maintenance_enabled || !settings.autobypass_enabled) return;
-      if (!(await autobypassRepo.isChannelEnabled(message.guild.id, message.channel.id))) return;
+      if (!(await withTimeout(autobypassRepo.isChannelEnabled(message.guild.id, message.channel.id), 3000))) return;
       const urls = extractUrls(message.content);
       if (!urls.length) return;
       if (recent.has(message.id)) return;

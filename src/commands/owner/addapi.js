@@ -7,6 +7,7 @@ const { ValidationError } = require('../../utils/errors');
 const { safeJsonParse } = require('../../utils/formatters');
 const { assertSafeUrl } = require('../../security/ssrfProtection');
 const { getLogger } = require('../../utils/logger');
+const { PROVIDER_SECRET_KEYS } = require('../../config/env');
 const log = getLogger();
 module.exports = {
   data: new SlashCommandBuilder().setName('addapi').setDescription('Register a new API provider')
@@ -42,13 +43,24 @@ module.exports = {
         if (!headers || typeof headers !== 'object' || Array.isArray(headers)) throw new ValidationError('headers_json must be a valid JSON object');
       }
       if (await providersRepo.getProviderByName(name)) throw new ValidationError(`Provider "${name}" already exists`);
+      const authenticationType = interaction.options.getString('authentication_type') || 'none';
+      const secretEnvKey = interaction.options.getString('secret_env_key')?.trim() || null;
+      if (authenticationType !== 'none' && !endpoint.toLowerCase().startsWith('https://')) {
+        throw new ValidationError('Authenticated providers must use an HTTPS endpoint');
+      }
+      if (secretEnvKey && !PROVIDER_SECRET_KEYS.has(secretEnvKey)) {
+        throw new ValidationError('secret_env_key must be one of the dedicated provider credential variables');
+      }
+      if (authenticationType !== 'none' && !secretEnvKey) {
+        throw new ValidationError('An approved secret_env_key is required for this authentication method');
+      }
       const provider = await providersRepo.createProvider({
         name, endpoint, http_method: interaction.options.getString('method', true),
         url_parameter: interaction.options.getString('url_parameter') || 'url',
         request_body_template: interaction.options.getString('body_template') || null,
         custom_headers: headers,
-        authentication_type: interaction.options.getString('authentication_type') || 'none',
-        secret_env_key: interaction.options.getString('secret_env_key') || null,
+        authentication_type: authenticationType,
+        secret_env_key: secretEnvKey,
         response_format: interaction.options.getString('response_format') || 'json',
         response_path: interaction.options.getString('response_path') || null,
         encoding_type: interaction.options.getString('encoding') || 'none',
