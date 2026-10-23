@@ -29,11 +29,12 @@ const envSchema = z.object({
   MAX_REDIRECTS: z.coerce.number().int().min(0).max(10).default(3),
   BYPASS_API_KEY: z.string().optional().default(''),
   LINK_UNLOCK_API_KEY: z.string().optional().default(''),
-  CUSTOM_API_KEY: z.string().optional().default('')
+  CUSTOM_API_KEY: z.string().optional().default(''),
+  KEYBYPASS_KEY: z.string().optional().default('')
 });
 
 let cached = null;
-const PROVIDER_SECRET_KEYS = new Set(['BYPASS_API_KEY', 'LINK_UNLOCK_API_KEY', 'CUSTOM_API_KEY']);
+const PROVIDER_SECRET_KEYS = new Set(['BYPASS_API_KEY', 'LINK_UNLOCK_API_KEY', 'CUSTOM_API_KEY', 'KEYBYPASS_KEY']);
 function loadEnv() {
   if (cached) return cached;
   const parsed = envSchema.safeParse(process.env);
