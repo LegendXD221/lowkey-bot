@@ -75,9 +75,14 @@ function extractResult(provider, data, status) {
   if (body.error || body.success === false || body.status === 'error') {
     throw new ProviderError(body.message || body.error || 'Provider returned error payload', 'PROVIDER_ERROR');
   }
-  let result = provider.response_path ? deepGet(body, provider.response_path) : (body.url || body.result || body.link || body.data?.url || body.data);
+  let result = provider.response_path ? deepGet(body, provider.response_path) : (
+    body.url || body.result || body.link || body.destination || body.direct ||
+    body.data?.url || body.data?.result || body.data?.link || body.data?.destination || body.data?.direct || body.data
+  );
   if (!result) throw new ProviderError('Could not extract result from response path', 'INVALID_RESPONSE');
-  if (typeof result === 'object') result = result.url || result.link || result.result || JSON.stringify(result);
+  if (typeof result === 'object') {
+    result = result.url || result.result || result.link || result.destination || result.direct || JSON.stringify(result);
+  }
   const out = unwrapResultLink(result);
   if (!out) throw new ProviderError('Empty extracted result', 'INVALID_RESPONSE');
   return out;
