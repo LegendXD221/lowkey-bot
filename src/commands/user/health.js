@@ -4,6 +4,18 @@ const { checkConnectivity } = require('../../database/pool');
 const { infoEmbed } = require('../../utils/embeds');
 const { formatLatency } = require('../../utils/formatters');
 
+async function checkDatabaseQuickly() {
+  let timer;
+  try {
+    return await Promise.race([
+      checkConnectivity(),
+      new Promise(resolve => { timer = setTimeout(() => resolve(false), 3000); })
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('health')
@@ -11,7 +23,7 @@ module.exports = {
   async execute(interaction) {
     await interaction.deferReply({ ephemeral: true });
     const started = Date.now();
-    const dbOk = await checkConnectivity();
+    const dbOk = await checkDatabaseQuickly();
     const botPing = interaction.client.ws.ping;
     const roundTrip = Date.now() - started;
     await interaction.editReply({

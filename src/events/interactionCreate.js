@@ -14,6 +14,14 @@ const { getLogger } = require('../utils/logger');
 
 const log = getLogger();
 
+function withTimeout(promise, ms, label) {
+  let timer;
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => { timer = setTimeout(() => reject(new Error(`${label} timed out after ${ms}ms`)), ms); })
+  ]).finally(() => clearTimeout(timer));
+}
+
 async function handleCopyButton(interaction) {
   const customId = interaction.customId;
   if (customId !== 'lowkey:copy:mobile' && customId !== 'lowkey:copy:pc') return false;
@@ -57,10 +65,15 @@ module.exports = {
     if (!interaction.isChatInputCommand()) return;
 
     const command = interaction.client.commands.get(interaction.commandName);
-    if (!command) return;
+    if (!command) {
+      log.warn({ command: interaction.commandName, guildId: interaction.guildId }, 'Unknown command interaction');
+      return;
+    }
+
+    log.info({ command: interaction.commandName, guildId: interaction.guildId }, 'Command interaction received');
 
     try {
-      const settings = await settingsRepo.getSettings();
+      const settings = await withTimeout(settingsRepo.getSettings(), 3000, 'Settings lookup');
       if (settings.maintenance_enabled && !isOwner(interaction.user.id)) {
         const ownerCmds = new Set([
           'maintenance', 'maintenance-status', 'status', 'ownerhelp',
