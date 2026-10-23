@@ -30,15 +30,18 @@ module.exports = {
     apply();
     setInterval(apply, 5 * 60 * 1000).unref?.();
 
-    // Register slash commands on every boot so they appear without a separate deploy step
-    try {
-      const guildIds = [...client.guilds.cache.keys()];
-      const result = await deployCommands({ guildIds });
-      if (result.failedGuildIds?.length) log.warn({ failedGuildIds: result.failedGuildIds }, 'Slash commands partially registered');
-      else log.info({ guilds: guildIds.length }, 'Slash commands registered');
-    } catch (err) {
-      log.error({ err: err?.message || err }, 'Command registration failed — check CLIENT_ID and token');
-    }
+    // Do not block interaction readiness on Discord REST rate limits or slow command PUTs.
+    const guildIds = [...client.guilds.cache.keys()];
+    void (async () => {
+      await new Promise(resolve => setTimeout(resolve, 10000));
+      try {
+        const result = await deployCommands({ guildIds });
+        if (result.failedGuildIds?.length) log.warn({ failedGuildIds: result.failedGuildIds }, 'Slash commands partially registered');
+        else log.info({ guilds: guildIds.length }, 'Slash commands registered');
+      } catch (err) {
+        log.error({ err: err?.message || err }, 'Command registration failed — check CLIENT_ID and token');
+      }
+    })();
 
     try {
       await loadEmojisFromDb();
