@@ -15,7 +15,7 @@ Premium Discord bypass bot with intelligent multi-provider routing, Neon Postgre
 - Autobypass channels (per-guild)
 - Maintenance mode that survives restarts
 - **Open Result / Mobile Copy / PC Copy** buttons on success
-- Branded custom emoji pack with Unicode fallbacks and slot-aware installation
+- Animated neon-pulse custom emoji pack with Unicode fallbacks and slot-aware installation
 - SSRF protection, rate limits, secret redaction
 - Structured logging, result cache, metrics
 

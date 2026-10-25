@@ -15,7 +15,7 @@ module.exports = {
     const installed = new Set(rows.map(row => row.emoji_key));
     const lines = DEFAULT_KEYS.map(def => {
       const row = rows.find(item => item.emoji_key === def.key);
-      return `${installed.has(def.key) ? '✅' : '▫️'} **${def.key}** · ${row ? `<:${row.name}:${row.emoji_id}>` : 'Unicode fallback'}`;
+      return `${installed.has(def.key) ? '✅' : '▫️'} **${def.key}** · ${row ? `<${row.animated ? 'a' : ''}:${row.name}:${row.emoji_id}>` : 'Unicode fallback'}`;
     });
     await interaction.editReply({
       embeds: [infoEmbed('Emoji Status', null).addFields(

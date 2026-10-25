@@ -4,7 +4,7 @@ const { setupEmojis } = require('../../services/emojiService');
 const { requireOwner } = require('../../security/ownerGuard');
 const { successEmbed, errorEmbed, warningEmbed } = require('../../utils/embeds');
 module.exports = {
-  data: new SlashCommandBuilder().setName('emoji-setup').setDescription('Create custom emojis in this server'),
+  data: new SlashCommandBuilder().setName('emoji-setup').setDescription('Install or refresh animated custom emojis'),
   async execute(interaction) {
     requireOwner(interaction); await interaction.deferReply({ ephemeral: true });
     if (!interaction.guild) { await interaction.editReply({ embeds: [errorEmbed('Guild Only', 'Run this inside a server.')] }); return; }
