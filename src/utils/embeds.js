@@ -164,6 +164,7 @@ function statusEmbed(data) {
 
 function helpEmbed(isOwner) {
   const emb = baseEmbed().setColor(THEME.accent).setTitle('Lowkey — Commands');
+  emb.setDescription('Use slash commands or the `-` prefix, for example `-bypass <url>`.');
   emb.addFields(
     { name: '/bypass', value: 'Unlock a supported link', inline: false },
     { name: '/inspect', value: 'Validate and inspect a link safely', inline: true },
@@ -181,6 +182,7 @@ function helpEmbed(isOwner) {
 
 function ownerHelpEmbed() {
   return baseEmbed().setColor(THEME.accent).setTitle('Lowkey — Owner Commands').setDescription([
+    'All commands support both `/command` and `-command` forms.',
     '`/addapi` — Register API provider', '`/removeapi` — Remove provider', '`/toggleapi` — Enable/disable provider',
     '`/testapi` — Test a provider', '`/api-list` — List providers', '`/api-info` — Provider details',
     '`/api-priority` — Set priority', '`/api-stats` — Usage statistics', '`/api-patterns` — Set domain filters', '`/api-reset` — Reset provider health/circuit',

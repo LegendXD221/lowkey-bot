@@ -6,6 +6,7 @@ const { bypass } = require('../services/bypassService');
 const rateLimiter = require('../services/rateLimiter');
 const { extractUrls } = require('../utils/formatters');
 const { buildBypassPayload, bypassLoadingEmbed, errorEmbed } = require('../utils/embeds');
+const { handlePrefixCommand } = require('../services/prefixCommands');
 const resultStore = require('../services/resultStore');
 const { InvalidUrlError, UnsupportedUrlError, BypassUnavailableError, MaintenanceError, RateLimitError } = require('../utils/errors');
 const { getLogger } = require('../utils/logger');
@@ -25,6 +26,7 @@ module.exports = {
     if (message.author.bot || message.webhookId) return;
     if (!message.guild || !message.channel) return;
     try {
+      if (await handlePrefixCommand(message)) return;
       const settings = await withTimeout(settingsRepo.getSettings(), 3000);
       if (settings.maintenance_enabled || !settings.autobypass_enabled) return;
       if (!(await withTimeout(autobypassRepo.isChannelEnabled(message.guild.id, message.channel.id), 3000))) return;

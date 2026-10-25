@@ -9,6 +9,7 @@ const envSchema = z.object({
   BOT_OWNER_IDS: z.string().min(1),
   BOT_STATUS_CHANNEL_ID: z.string().optional().default(''),
   GUILD_ID: z.string().optional().default(''),
+  COMMAND_PREFIX: z.string().min(1).max(3).default('-'),
   NODE_ENV: z.enum(['development', 'production', 'test']).default('production'),
   LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace']).default('info'),
   DEFAULT_TIMEOUT_MS: z.coerce.number().int().positive().default(10000),

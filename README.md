@@ -55,7 +55,7 @@ npm start
 
 Configure the environment variables from `.env.example`. The bot exposes `GET /health` as a liveness endpoint and `GET /ready` as a startup-readiness diagnostic. Set `PORT` to the port assigned by your hosting panel, then point UptimeRobot at `https://your-domain.example/health` if the health server is publicly reachable.
 
-Slash commands synchronize automatically from the Discord `ready` event after startup. Keep the bot process running continuously and allow outbound HTTPS/WebSocket connections to Discord on port 443.
+Slash commands synchronize automatically from the Discord `ready` event after startup. Text commands are also available with the default `-` prefix, such as `-bypass <url>` and `-health`; set `COMMAND_PREFIX` to change it. Keep the bot process running continuously and allow outbound HTTPS/WebSocket connections to Discord on port 443.
 
 ## Owner workflow
 
