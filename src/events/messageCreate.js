@@ -76,6 +76,7 @@ module.exports = {
                   : errorEmbed('Error', 'Something went wrong. Please try again later.');
         if (loadingMessage) {
           await loadingMessage.edit({ content: '', embeds: [failureEmbed], components: [] }).catch(() => {});
+          return;
         }
         if (err instanceof MaintenanceError || err instanceof RateLimitError) return;
         if (err instanceof InvalidUrlError || err instanceof UnsupportedUrlError) return;
