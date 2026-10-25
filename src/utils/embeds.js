@@ -173,6 +173,8 @@ function helpEmbed(isOwner) {
     { name: '/help', value: 'Show this help', inline: true },
     { name: '/ping', value: 'Latency check', inline: true },
     { name: '/about', value: 'Bot info', inline: true },
+    { name: '/serverinfo', value: 'Server information', inline: true },
+    { name: '/invite', value: 'Invite Lowkey', inline: true },
     { name: '/stats', value: 'Public usage stats', inline: true },
     { name: '/privacy', value: 'Data & privacy', inline: true }
   );

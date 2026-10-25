@@ -81,6 +81,8 @@ Slash commands synchronize automatically from the Discord `ready` event after st
 | `/help` | Command list |
 | `/ping` | Latency |
 | `/about` | Version / features |
+| `/serverinfo` | Server details |
+| `/invite` | Invite link |
 | `/stats` | Public counters |
 | `/privacy` | Data handling |
 
