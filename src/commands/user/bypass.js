@@ -12,7 +12,7 @@ module.exports = {
   data: new SlashCommandBuilder().setName('bypass').setDescription('Unlock a supported link')
     .addStringOption(o => o.setName('url').setDescription('The URL to unlock').setRequired(true)),
   async execute(interaction) {
-    await interaction.deferReply({ ephemeral: false });
+    if (!interaction.deferred && !interaction.replied) await interaction.deferReply({ ephemeral: false });
     try {
       const mention = `<@${interaction.user.id}>`;
       await interaction.editReply({

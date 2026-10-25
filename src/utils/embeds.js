@@ -50,7 +50,13 @@ function bypassLoadingEmbed({ service } = {}) {
 }
 
 function isHttpResult(url) {
-  return typeof url === 'string' && /^https?:\/\//i.test(url.trim());
+  if (typeof url !== 'string' || !/^https?:\/\//i.test(url.trim())) return false;
+  try {
+    const parsed = new URL(url.trim());
+    return ['http:', 'https:'].includes(parsed.protocol) && Boolean(parsed.hostname) && !parsed.username && !parsed.password;
+  } catch (_) {
+    return false;
+  }
 }
 
 function bypassSuccessEmbed({ originalUrl, resultUrl, provider, latencyMs, service, fromCache }) {

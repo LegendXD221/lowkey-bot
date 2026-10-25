@@ -42,7 +42,7 @@ async function handleCopyButton(interaction) {
     ? resultUrl
     : '```\n' + resultUrl + '\n```';
 
-  await interaction.reply({ content: body, ephemeral: true }).catch(() => {});
+  await interaction.reply({ content: body, ephemeral: true, allowedMentions: { parse: [] } }).catch(() => {});
   return true;
 }
 
@@ -76,8 +76,14 @@ module.exports = {
 
     log.info({ command: interaction.commandName, guildId: interaction.guildId }, 'Command interaction received');
 
+    // /bypass performs network work and must acknowledge before any database gate.
+    if (interaction.commandName === 'bypass' && !interaction.deferred && !interaction.replied) {
+      await interaction.deferReply({ ephemeral: false }).catch(() => {});
+    }
+
     try {
-      const settings = await withTimeout(settingsRepo.getSettings(), 3000, 'Settings lookup');
+      // Keep this gate short: commands such as /bypass acknowledge after dispatch.
+      const settings = await withTimeout(settingsRepo.getSettings(), 750, 'Settings lookup');
       if (settings.maintenance_enabled && !isOwner(interaction.user.id)) {
         const ownerCmds = new Set([
           'maintenance', 'maintenance-status', 'status', 'ownerhelp',
@@ -87,10 +93,9 @@ module.exports = {
           'emoji-setup', 'emoji-status', 'db-stats', 'db-cleanup'
         ]);
         if (!ownerCmds.has(interaction.commandName)) {
-          await interaction.reply({
-            embeds: [maintenanceEmbed(settings.maintenance_message)],
-            ephemeral: true
-          }).catch(() => {});
+          const maintenanceEmbedPayload = { embeds: [maintenanceEmbed(settings.maintenance_message)] };
+          if (interaction.deferred || interaction.replied) await interaction.editReply(maintenanceEmbedPayload).catch(() => {});
+          else await interaction.reply({ ...maintenanceEmbedPayload, ephemeral: true }).catch(() => {});
           return;
         }
       }

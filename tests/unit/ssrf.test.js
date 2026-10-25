@@ -19,5 +19,8 @@ describe('ssrf isPrivateIp', () => {
   test('private v6', () => {
     expect(isPrivateIp('::1')).toBe(true);
     expect(isPrivateIp('fe80::1')).toBe(true);
+    expect(isPrivateIp('ff02::1')).toBe(true);
+    expect(isPrivateIp('2001:db8::1')).toBe(true);
+    expect(isPrivateIp('0:0:0:0:0:ffff:7f00:1')).toBe(true);
   });
 });

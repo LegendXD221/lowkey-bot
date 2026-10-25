@@ -1,11 +1,12 @@
 'use strict';
 const axios = require('axios');
 const { getSecret, loadEnv } = require('../config/env');
-const { createSafeAxiosConfig, assertSafeUrl } = require('../security/ssrfProtection');
+const { createSafeAxiosConfig, assertSafeUrl, createPinnedLookup } = require('../security/ssrfProtection');
 const { deepGet, safeJsonParse } = require('../utils/formatters');
 const { ProviderError } = require('../utils/errors');
 const { getLogger } = require('../utils/logger');
 const log = getLogger();
+const SAFE_REDIRECT_HEADERS = new Set(['user-agent', 'accept', 'accept-language', 'content-type', 'referer', 'origin']);
 
 function unwrapResultLink(value) {
   const text = String(value ?? '').trim();
@@ -24,7 +25,10 @@ function applyEncoding(value, encodingType) {
   }
 }
 function buildAuthHeaders(provider) {
-  const headers = { ...(provider.custom_headers || {}) };
+  const headers = {};
+  for (const [key, value] of Object.entries(provider.custom_headers || {})) {
+    if (SAFE_REDIRECT_HEADERS.has(key.toLowerCase()) && typeof value === 'string') headers[key] = value;
+  }
   const secret = provider.secret_env_key ? getSecret(provider.secret_env_key) : null;
   if (provider.authentication_type === 'bearer' && secret) headers['Authorization'] = `Bearer ${secret}`;
   if (provider.authentication_type === 'api_key_header' && secret) headers['X-API-Key'] = secret;
@@ -91,8 +95,8 @@ async function requestWithSafeRedirects(config, maxRedirects) {
   let currentUrl = config.url;
   let currentConfig = { ...config, maxRedirects: 0 };
   for (let redirectCount = 0; ; redirectCount++) {
-    await assertSafeUrl(currentUrl);
-    const response = await axios({ ...currentConfig, url: currentUrl });
+    const addresses = await assertSafeUrl(currentUrl);
+    const response = await axios({ ...currentConfig, url: currentUrl, lookup: createPinnedLookup(addresses) });
     const location = response.headers?.location;
     if (response.status < 300 || response.status >= 400 || !location) return response;
     if (redirectCount >= maxRedirects) {
@@ -105,7 +109,7 @@ async function requestWithSafeRedirects(config, maxRedirects) {
     if (currentOrigin !== nextOrigin) {
       const safeHeaders = {};
       for (const [key, value] of Object.entries(currentConfig.headers || {})) {
-        if (['user-agent', 'accept', 'content-type'].includes(key.toLowerCase())) safeHeaders[key] = value;
+        if (SAFE_REDIRECT_HEADERS.has(key.toLowerCase())) safeHeaders[key] = value;
       }
       currentConfig = { ...currentConfig, headers: safeHeaders };
     }

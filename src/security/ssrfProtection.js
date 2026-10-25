@@ -1,32 +1,8 @@
 'use strict';
 const dns = require('dns').promises;
-const net = require('net');
-const { isPrivateHost } = require('./urlValidator');
+const { isPrivateHost, isPrivateIp } = require('./urlValidator');
 const { loadEnv } = require('../config/env');
 
-function isPrivateIp(ip) {
-  if (!ip) return true;
-  if (net.isIPv4(ip)) {
-    const parts = ip.split('.').map(Number);
-    if (parts[0] === 10 || parts[0] === 127 || parts[0] === 0) return true;
-    if (parts[0] === 169 && parts[1] === 254) return true;
-    if (parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31) return true;
-    if (parts[0] === 192 && parts[1] === 168) return true;
-    if (parts[0] === 192 && parts[1] === 0 && parts[2] === 0) return true;
-    if (parts[0] === 198 && (parts[1] === 18 || parts[1] === 19)) return true;
-    if (parts[0] === 100 && parts[1] >= 64 && parts[1] <= 127) return true;
-    if (parts[0] >= 224) return true; // multicast and reserved space
-    return false;
-  }
-  if (net.isIPv6(ip)) {
-    const lower = ip.toLowerCase();
-    if (lower === '::1' || lower === '::') return true;
-    if (lower.startsWith('fc') || lower.startsWith('fd') || lower.startsWith('fe80')) return true;
-    if (lower.startsWith('::ffff:')) return isPrivateIp(lower.slice(7));
-    return false;
-  }
-  return true;
-}
 async function resolveAndCheck(hostname) {
   if (isPrivateHost(hostname)) throw new Error('Blocked: private or metadata host');
   let addresses;
@@ -37,18 +13,31 @@ async function resolveAndCheck(hostname) {
     wrapped.code = err.code;
     throw wrapped;
   }
-  for (const a of addresses) {
-    if (isPrivateIp(a.address)) throw new Error(`Blocked: resolved to private address ${a.address}`);
+  if (!addresses.length) throw new Error(`DNS lookup returned no addresses for ${hostname}`);
+  for (const address of addresses) {
+    if (isPrivateIp(address.address)) throw new Error(`Blocked: resolved to private address ${address.address}`);
   }
   return addresses;
 }
+
 async function assertSafeUrl(urlString) {
   let parsed;
   try { parsed = new URL(urlString); } catch { throw new Error('Invalid URL'); }
   if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') throw new Error('Only HTTP/HTTPS allowed');
-  await resolveAndCheck(parsed.hostname);
-  return true;
+  return resolveAndCheck(parsed.hostname);
 }
+
+function createPinnedLookup(addresses) {
+  return (hostname, options, callback) => {
+    const family = options?.family || 0;
+    const matching = addresses.filter(address => !family || address.family === family);
+    const selected = matching[0] || addresses[0];
+    if (!selected) return callback(new Error(`No validated address for ${hostname}`));
+    if (options?.all) return callback(null, matching.length ? matching : [selected]);
+    return callback(null, selected.address, selected.family);
+  };
+}
+
 function createSafeAxiosConfig(baseConfig = {}) {
   const env = loadEnv();
   return {
@@ -60,4 +49,4 @@ function createSafeAxiosConfig(baseConfig = {}) {
     validateStatus: () => true
   };
 }
-module.exports = { resolveAndCheck, isPrivateIp, assertSafeUrl, createSafeAxiosConfig };
+module.exports = { resolveAndCheck, isPrivateIp, assertSafeUrl, createPinnedLookup, createSafeAxiosConfig };

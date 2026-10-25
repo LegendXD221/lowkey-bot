@@ -8,6 +8,7 @@ process.env.MAX_RETRIES = '0';
 process.env.MAX_REDIRECTS = '2';
 const nock = require('nock');
 const { buildUrl, buildBody, extractResult, applyEncoding, executeRequest, unwrapResultLink } = require('../../src/services/requestEngine');
+const { isHttpResult } = require('../../src/utils/embeds');
 afterEach(() => nock.cleanAll());
 describe('requestEngine helpers', () => {
   const baseProvider = {
@@ -43,6 +44,11 @@ describe('requestEngine helpers', () => {
   test('extractResult rejects malformed URL-format output', () => {
     expect(() => extractResult({ ...baseProvider, response_format: 'url' }, 'http://', 200)).toThrow();
     expect(() => extractResult({ ...baseProvider, response_format: 'url' }, 'https://user:pass@example.com', 200)).toThrow();
+  });
+  test('result rendering rejects malformed HTTP-looking values', () => {
+    expect(isHttpResult('https://')).toBe(false);
+    expect(isHttpResult('https://user:pass@example.com')).toBe(false);
+    expect(isHttpResult('https://out.com/result')).toBe(true);
   });
   test('applyEncoding base64url', () => {
     expect(applyEncoding('ab+', 'base64url')).toBe(Buffer.from('ab+', 'utf8').toString('base64url'));

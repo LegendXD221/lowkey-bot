@@ -7,8 +7,9 @@ const { ValidationError } = require('../../utils/errors');
 const { safeJsonParse } = require('../../utils/formatters');
 const { assertSafeUrl } = require('../../security/ssrfProtection');
 const { getLogger } = require('../../utils/logger');
-const { PROVIDER_SECRET_KEYS } = require('../../config/env');
+const { isAllowedProviderSecretKey } = require('../../config/env');
 const log = getLogger();
+const SAFE_CUSTOM_HEADERS = new Set(['accept', 'accept-language', 'content-type', 'origin', 'referer', 'user-agent']);
 module.exports = {
   data: new SlashCommandBuilder().setName('addapi').setDescription('Register a new API provider')
     .addStringOption(o => o.setName('name').setDescription('Unique provider name').setRequired(true))
@@ -41,6 +42,11 @@ module.exports = {
       if (headersRaw) {
         headers = safeJsonParse(headersRaw, null);
         if (!headers || typeof headers !== 'object' || Array.isArray(headers)) throw new ValidationError('headers_json must be a valid JSON object');
+        for (const [headerName, value] of Object.entries(headers)) {
+          if (!SAFE_CUSTOM_HEADERS.has(headerName.toLowerCase()) || typeof value !== 'string') {
+            throw new ValidationError('headers_json may contain only public headers; store API keys in an approved environment variable');
+          }
+        }
       }
       if (await providersRepo.getProviderByName(name)) throw new ValidationError(`Provider "${name}" already exists`);
       const authenticationType = interaction.options.getString('authentication_type') || 'none';
@@ -48,8 +54,8 @@ module.exports = {
       if (authenticationType !== 'none' && !endpoint.toLowerCase().startsWith('https://')) {
         throw new ValidationError('Authenticated providers must use an HTTPS endpoint');
       }
-      if (secretEnvKey && !PROVIDER_SECRET_KEYS.has(secretEnvKey)) {
-        throw new ValidationError('secret_env_key must be one of the dedicated provider credential variables');
+      if (secretEnvKey && !isAllowedProviderSecretKey(secretEnvKey)) {
+        throw new ValidationError('secret_env_key must be an approved provider variable such as CUSTOM_API_KEY_ALPHA');
       }
       if (authenticationType !== 'none' && !secretEnvKey) {
         throw new ValidationError('An approved secret_env_key is required for this authentication method');

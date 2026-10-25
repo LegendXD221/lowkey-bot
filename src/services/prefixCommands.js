@@ -150,7 +150,7 @@ async function handlePrefixCommand(message) {
   } catch (err) {
     log.error({ err, command: command.data.name }, 'Prefix command error');
     const payload = { embeds: [err instanceof UnauthorizedError ? errorEmbed('Unauthorized', err.message) : errorEmbed('Error', err.message || 'An unexpected error occurred.')], allowedMentions: { repliedUser: false } };
-    if (interaction.replied || interaction.deferred) await interaction.followUp(payload).catch(() => {});
+    if (interaction.replied || interaction.deferred) await interaction.editReply(payload).catch(() => {});
     else await message.reply(payload).catch(() => {});
   }
   return true;

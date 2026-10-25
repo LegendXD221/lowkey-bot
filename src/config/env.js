@@ -37,6 +37,10 @@ const envSchema = z.object({
 let cached = null;
 const PROVIDER_SECRET_KEYS = new Set(['BYPASS_API_KEY', 'LINK_UNLOCK_API_KEY', 'CUSTOM_API_KEY', 'KEYBYPASS_KEY']);
 const CUSTOM_PROVIDER_SECRET_PATTERN = /^CUSTOM_API_KEY_[A-Z0-9_]+$/;
+function isAllowedProviderSecretKey(key) {
+  const value = String(key || '').trim();
+  return PROVIDER_SECRET_KEYS.has(value) || CUSTOM_PROVIDER_SECRET_PATTERN.test(value);
+}
 function loadEnv() {
   if (cached) return cached;
   const parsed = envSchema.safeParse(process.env);
@@ -55,7 +59,7 @@ function getSecret(envKey) {
   if (!envKey || typeof envKey !== 'string') return null;
   const key = envKey.trim();
   const testOnly = process.env.NODE_ENV === 'test' && /^TEST_[A-Z0-9_]+$/.test(key);
-  if (!PROVIDER_SECRET_KEYS.has(key) && !CUSTOM_PROVIDER_SECRET_PATTERN.test(key) && !testOnly) return null;
+  if (!isAllowedProviderSecretKey(key) && !testOnly) return null;
   return process.env[key] || null;
 }
-module.exports = { loadEnv, getSecret, PROVIDER_SECRET_KEYS };
+module.exports = { loadEnv, getSecret, PROVIDER_SECRET_KEYS, isAllowedProviderSecretKey };
